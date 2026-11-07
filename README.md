@@ -1,3 +1,10 @@
+<div align="center">
+
+<img src="assets/Logo of the Internationalization.svg" alt="Logo of the Internationalization (I18n)" width="90%" />
+
+<br />
+<br />
+
 [![Release](https://img.shields.io/badge/Release-v1.0.0%20Stable-10B981?style=for-the-badge&logo=semanticrelease&logoColor=white)](#stable-release--compatibility)
 [![Powered by MediaWiki](https://img.shields.io/badge/Powered%20by-MediaWiki-006699?style=for-the-badge&logo=mediawiki&logoColor=white)](https://www.mediawiki.org/wiki/Extension:Scribunto)
 [![Scribunto Lua](https://img.shields.io/badge/Scribunto-Lua%205.1-6366F1?style=for-the-badge&logo=lua&logoColor=white)](https://www.mediawiki.org/wiki/Extension:Scribunto/Lua_reference_manual)
