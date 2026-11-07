@@ -94,6 +94,12 @@
 --      Built-in localized lookup for:
 --      - ISO 3166 country names
 --      - ISO 639 language names
+--      - ISO 15924 script names
+--
+--  • Unified alias resolution
+--      All ISO / Unicode datasets share Module:I18n/Alias (namespace-aware
+--      forward & reverse lookup, deterministic precedence, conflict
+--      detection and load/register/conflict/resolve/invalidate callbacks).
 --
 --  Design Goals
 --  ------------
@@ -513,6 +519,43 @@ function i18n.getLanguageName(code, args)
 		return iso639.getName(code, targetLang, FALLBACKS)
 	end
 	return code
+end
+
+-- ============================================================
+-- 7a. ISO 15924 integration
+-- ============================================================
+
+function i18n.getScriptName(code, args)
+	local targetLang = _i18n.resolveLang(args)
+	local ok, iso15924 = pcall(require, 'Module:I18n/ISO 15924')
+	if ok and type(iso15924) == 'table' and iso15924.getName then
+		return iso15924.getName(code, targetLang, FALLBACKS)
+	end
+	return code
+end
+
+-- ============================================================
+-- 7b. Unified alias resolution (Module:I18n/Alias)
+-- ============================================================
+
+--- Resolve an alias in a namespace ('iso3166', 'iso639', 'iso15924',
+--  'unicode:property', 'unicode:value:<prop>').
+--  @return canonical, kind | nil, info  (info.ambiguous when ambiguous)
+function i18n.resolveAlias(namespace, input)
+	local ok, Alias = pcall(require, 'Module:I18n/Alias')
+	if not ok or type(Alias) ~= 'table' then return nil end
+	local ok2, canonical, info = pcall(Alias.resolve, namespace, input)
+	if not ok2 then return nil end
+	return canonical, info
+end
+
+--- {{#invoke:I18n|alias|iso3166|Viet Nam}}  → VN  (empty string if unknown)
+function i18n.alias(frame)
+	local a = frame.args
+	if not a or not a[1] or not a[2] then
+		error('i18n.alias: requires 2 arguments (namespace, alias)')
+	end
+	return i18n.resolveAlias(mw.text.trim(a[1]), a[2]) or ''
 end
 
 -- ============================================================

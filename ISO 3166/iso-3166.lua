@@ -1,4 +1,23 @@
+--  ============================================================
+--  Module:I18n/ISO 3166
+--  Tra cứu quốc gia & vùng lãnh thổ (ISO 3166-1 Alpha-2/3/Numeric & ISO 3166-3)
+--
+--  Nguồn chuẩn chính thức (Provenance):
+--    · ISO 3166 Maintenance Agency (ISO 3166-1 & ISO 3166-3)
+--    · United Nations Statistics Division (UN M49)
+--    · Unicode CLDR Territory Containment & Aliases
+--  ============================================================
+
 local M = {}
+
+M._meta = {
+	standard = "ISO 3166-1 / ISO 3166-3",
+	sources  = {
+		"https://www.iso.org/iso-3166-country-codes.html",
+		"https://unstats.un.org/unsd/methodology/m49/",
+	},
+	updated  = "2026-11-07",
+}
 
 -- 1. Base Data: Chỉ chứa tên gốc (English) và metadata
 local baseData = {
@@ -79,11 +98,15 @@ local baseData = {
   ["FR"] = {alpha3="FRA",numeric="250",name="France"},
   ["GA"] = {alpha3="GAB",numeric="266",name="Gabon"},
   ["GB"] = {alpha3="GBR",numeric="826",name="United Kingdom",isoname="United Kingdom of Great Britain and Northern Ireland",altnames={"UK","Great Britain"}},
-	 ["GB-ENG"] = {alpha3="ENG",numeric="000",name="England"}, --Considered to be a country
-	 ["GB-NIR"] = {alpha3="NIR",numeric="000",name="Northern Ireland"}, --Considered to be a country
-	 ["GB-SCT"] = {alpha3="SCT",numeric="000",name="Scotland"}, --Considered to be a country
-	 ["GB-WLS"] = {alpha3="WLS",numeric="000",name="Wales"}, --Considered to be a country
-	 ["GB-EAW"] = {alpha3="EAW",numeric="000",name="England and Wales"}, --Considered to be a country
+	 -- Project-defined entries: "GB-xxx" keys follow ISO 3166-2 shape, but the
+	 -- alpha3 values and numeric "000" are NOT ISO-assigned. They are kept for
+	 -- backward compatibility; numeric "000" is never indexed (it was shared by
+	 -- all five rows, making reverse lookup non-deterministic).
+	 ["GB-ENG"] = {alpha3="ENG",numeric="000",name="England",status="project-defined"}, --Considered to be a country
+	 ["GB-NIR"] = {alpha3="NIR",numeric="000",name="Northern Ireland",status="project-defined"}, --Considered to be a country
+	 ["GB-SCT"] = {alpha3="SCT",numeric="000",name="Scotland",status="project-defined"}, --Considered to be a country
+	 ["GB-WLS"] = {alpha3="WLS",numeric="000",name="Wales",status="project-defined"}, --Considered to be a country
+	 ["GB-EAW"] = {alpha3="EAW",numeric="000",name="England and Wales",status="project-defined"}, --Considered to be a country
   ["GD"] = {alpha3="GRD",numeric="308",name="Grenada"},
   ["GE"] = {alpha3="GEO",numeric="268",name="Georgia"},
   ["GF"] = {alpha3="GUF",numeric="254",name="French Guiana"},
@@ -251,7 +274,9 @@ local baseData = {
   ["VU"] = {alpha3="VUT",numeric="548",name="Vanuatu"},
   ["WF"] = {alpha3="WLF",numeric="876",name="Wallis and Futuna"},
   ["WS"] = {alpha3="WSM",numeric="882",name="Samoa"},
-  ["XK"] = {alpha3="XKX",numeric="926",name="Kosovo",isoname="Republic of Kosovo",altnames={"XXK", "UNK"}},
+  -- XK is a user-assigned code (ISO 3166-1 reserves "XA"–"XZ" for user assignment);
+  -- alpha3/numeric are likewise not ISO-assigned.
+  ["XK"] = {alpha3="XKX",numeric="926",name="Kosovo",isoname="Republic of Kosovo",altnames={"XXK", "UNK"},status="user-assigned"},
   ["YE"] = {alpha3="YEM",numeric="887",name="Yemen"},
   ["YT"] = {alpha3="MYT",numeric="175",name="Mayotte"},
   ["ZA"] = {alpha3="ZAF",numeric="710",name="South Africa"},
@@ -260,34 +285,198 @@ local baseData = {
 
 }
 
--- 2. Nạp an toàn dữ liệu Translation Hardtext (DRY)
-local hasTran, tranData = pcall(require, "Module:I18n/ISO 3166/tran")
-if not hasTran or type(tranData) ~= "table" then 
-	tranData = {} 
+-- 2. Mã bảo lưu đặc biệt (Exceptionally Reserved) & Mã lịch sử đã rút (ISO 3166-3)
+--    Tách riêng khỏi baseData để KHÔNG nhầm lẫn với các mã ISO 3166-1 đang cấp phát.
+local reservedData = {
+	["AC"] = { name = "Ascension Island",          status = "exceptionally-reserved", related = "SH" },
+	["CP"] = { name = "Clipperton Island",         status = "exceptionally-reserved", related = "FR" },
+	["CQ"] = { name = "Island of Sark",            status = "exceptionally-reserved", related = "GG" },
+	["DG"] = { name = "Diego Garcia",              status = "exceptionally-reserved", related = "IO" },
+	["EA"] = { name = "Ceuta, Melilla",            status = "exceptionally-reserved", related = "ES" },
+	["EU"] = { name = "European Union",            status = "exceptionally-reserved" },
+	["EZ"] = { name = "Eurozone",                  status = "exceptionally-reserved" },
+	["FX"] = { name = "France, Metropolitan",      status = "exceptionally-reserved", alpha3 = "FXX", numeric = "249", replacedBy = "FR" },
+	["IC"] = { name = "Canary Islands",            status = "exceptionally-reserved", related = "ES" },
+	["SU"] = { name = "USSR",                      status = "exceptionally-reserved", alpha3 = "SUN", numeric = "810", iso3166_3 = "SUHH" },
+	["TA"] = { name = "Tristan da Cunha",          status = "exceptionally-reserved", related = "SH" },
+	["UK"] = { name = "United Kingdom",            status = "exceptionally-reserved", replacedBy = "GB" },
+	["UN"] = { name = "United Nations",            status = "exceptionally-reserved" },
+}
+
+local historicalData = {
+	["AN"] = { iso3166_3 = "ANHH", alpha3 = "ANT", numeric = "530", name = "Netherlands Antilles",                 status = "withdrawn", withdrawn = "2010", splitInto = { "BQ", "CW", "SX" } },
+	["BU"] = { iso3166_3 = "BUMM", alpha3 = "BUR", numeric = "104", name = "Burma",                                status = "withdrawn", withdrawn = "1989", replacedBy = "MM" },
+	["CS"] = { iso3166_3 = "CSXX", alpha3 = "SCG", numeric = "891", name = "Serbia and Montenegro",                status = "withdrawn", withdrawn = "2006", splitInto = { "RS", "ME" }, formerCode = "CSHH (Czechoslovakia, 1993)" },
+	["DD"] = { iso3166_3 = "DDDE", alpha3 = "DDR", numeric = "278", name = "German Democratic Republic",           status = "withdrawn", withdrawn = "1990", replacedBy = "DE" },
+	["NT"] = { iso3166_3 = "NTHH", alpha3 = "NTZ", numeric = "536", name = "Neutral Zone",                         status = "withdrawn", withdrawn = "1993", splitInto = { "IQ", "SA" } },
+	["TP"] = { iso3166_3 = "TPTL", alpha3 = "TMP", numeric = "626", name = "East Timor",                           status = "withdrawn", withdrawn = "2002", replacedBy = "TL" },
+	["YD"] = { iso3166_3 = "YDYE", alpha3 = "YMD", numeric = "720", name = "Democratic Yemen",                     status = "withdrawn", withdrawn = "1990", replacedBy = "YE" },
+	["YU"] = { iso3166_3 = "YUCS", alpha3 = "YUG", numeric = "891", name = "Yugoslavia",                           status = "withdrawn", withdrawn = "2003", splitInto = { "BA", "HR", "MK", "RS", "ME", "SI" } },
+	["ZR"] = { iso3166_3 = "ZRCD", alpha3 = "ZAR", numeric = "180", name = "Zaire",                                status = "withdrawn", withdrawn = "1997", replacedBy = "CD" },
+}
+
+-- 3. Nạp an toàn dữ liệu Translation Hardtext (DRY)
+local function loadOptionalTran(modName)
+	if mw and mw.loadData then
+		local ok, d = pcall(mw.loadData, modName)
+		if ok and type(d) == "table" then return d end
+	end
+	local ok, d = pcall(require, modName)
+	if ok and type(d) == "table" then return d end
+	return nil
 end
 
--- Thêm đoạn này ngay sau khi khai báo baseData trong I18n ISO 3166.lua
-local reverseData = {}
-for alpha2, data in pairs(baseData) do
-	if data.alpha3 then reverseData[data.alpha3] = alpha2 end
-	if data.numeric then reverseData[data.numeric] = alpha2 end
+local tranData = loadOptionalTran("Module:I18n/ISO 3166/tran")
+	or loadOptionalTran("Module:I18n/ISO 3166/data")
+	or {}
+
+-- 4. Unified alias registry (Module:I18n/Alias)
+--    Mọi chỉ mục tra ngược (Alpha-3, Numeric, tên, altnames, mã kế thừa lịch sử,
+--    bản dịch) được dựng DUY NHẤT từ baseData + historicalData + tranData, nên
+--    không thể lệch khỏi bản ghi gốc.
+local Alias = require("Module:I18n/Alias")
+local NS = "iso3166"
+
+--- Chuẩn hoá khoá: không phân biệt hoa thường; mã số được đệm 0 ("40" → "040").
+local function normalize(s)
+	local k = Alias.normalizers.default(s)
+	if k:match("^%d%d?$") then k = string.rep("0", 3 - #k) .. k end
+	return k
 end
 
--- Sửa đổi logic đầu vào của engine tra cứu:
+local function loader(api)
+	local codes = {}
+	for alpha2 in pairs(baseData) do codes[#codes + 1] = alpha2 end
+	table.sort(codes)
+
+	for _, alpha2 in ipairs(codes) do
+		local d = baseData[alpha2]
+		local isProject = d.status ~= nil -- 'project-defined' | 'user-assigned'
+		api.addRecord(alpha2, d)
+		if d.alpha3 then api.register(d.alpha3, alpha2, isProject and "project" or "official") end
+		if d.numeric and d.numeric ~= "000" then
+			api.register(d.numeric, alpha2, isProject and "project" or "official")
+		end
+		api.register(d.name, alpha2, "name")
+		if d.isoname then api.register(d.isoname, alpha2, "name") end
+		for _, alt in ipairs(d.altnames or {}) do api.register(alt, alpha2, "project") end
+	end
+
+	-- Đăng ký các mã bảo lưu / lịch sử có ánh xạ kế thừa 1-1 rõ ràng (vd: ZR → CD, BU → MM, UK → GB)
+	local rCodes = {}
+	for k in pairs(reservedData) do rCodes[#rCodes + 1] = k end
+	table.sort(rCodes)
+	for _, k in ipairs(rCodes) do
+		local r = reservedData[k]
+		if r.replacedBy and baseData[r.replacedBy] then
+			api.register(k, r.replacedBy, "historical")
+			if r.alpha3 then api.register(r.alpha3, r.replacedBy, "historical") end
+			if r.numeric then api.register(r.numeric, r.replacedBy, "historical") end
+		end
+	end
+
+	local hCodes = {}
+	for k in pairs(historicalData) do hCodes[#hCodes + 1] = k end
+	table.sort(hCodes)
+	for _, k in ipairs(hCodes) do
+		local h = historicalData[k]
+		if h.replacedBy and baseData[h.replacedBy] then
+			api.register(k, h.replacedBy, "historical")
+			if h.iso3166_3 then api.register(h.iso3166_3, h.replacedBy, "historical") end
+			if h.alpha3 then api.register(h.alpha3, h.replacedBy, "historical") end
+			if h.numeric and h.numeric ~= baseData[h.replacedBy].numeric then
+				api.register(h.numeric, h.replacedBy, "historical")
+			end
+		end
+	end
+
+	for _, alpha2 in ipairs(codes) do
+		local row = tranData[alpha2]
+		if type(row) == "table" then
+			local langs = {}
+			for lang in pairs(row) do langs[#langs + 1] = lang end
+			table.sort(langs)
+			for _, lang in ipairs(langs) do api.register(row[lang], alpha2, "translation") end
+		end
+	end
+end
+
+Alias.define(NS, { loader = loader, normalize = normalize })
+
+--- Phân giải bất kỳ mã/tên/alias nào về Alpha-2.
+--  @return alpha2, kind | nil, info (info.ambiguous khi mơ hồ)
+function M.resolve(input)
+	return Alias.resolve(NS, input)
+end
+
+--- Toàn bộ metadata của một quốc gia / vùng lãnh thổ đang cấp phát.
+function M.getData(code)
+	if not code then return nil end
+	local alpha2 = Alias.resolve(NS, code)
+	return alpha2 and baseData[alpha2] or nil
+end
+
+--- Tra cứu thông tin mã bảo lưu đặc biệt (Exceptionally Reserved, vd: 'EU', 'SU', 'UK').
+function M.getReserved(code)
+	if not code then return nil end
+	local k = string.upper(Alias.normalizers.default(tostring(code)))
+	return reservedData[k]
+end
+
+--- Tra cứu thông tin mã lịch sử đã rút khỏi ISO 3166-1 (ISO 3166-3, vd: 'YU', 'CS', 'AN', 'ZR').
+function M.getHistorical(code)
+	if not code then return nil end
+	local k = string.upper(Alias.normalizers.default(tostring(code)))
+	if historicalData[k] then return historicalData[k] end
+	for _, h in pairs(historicalData) do
+		if h.iso3166_3 == k or h.alpha3 == k then return h end
+	end
+	return nil
+end
+
+--- Liệt kê tất cả mã Alpha-2 trong baseData (tuỳ chọn lọc theo status:
+--  'officially-assigned', 'project-defined', 'user-assigned').
+function M.getAllCodes(statusFilter)
+	local all = Alias.getCanonicals(NS)
+	if not statusFilter then return all end
+	local out = {}
+	for _, c in ipairs(all) do
+		local st = (baseData[c] and baseData[c].status) or "officially-assigned"
+		if st == statusFilter then out[#out + 1] = c end
+	end
+	return out
+end
+
+--- Mọi alias trỏ về một mã (tra ngược).
+function M.getAliases(code)
+	local alpha2 = Alias.resolve(NS, code)
+	return alpha2 and Alias.getAliases(NS, alpha2) or {}
+end
+
+--- Báo cáo toàn vẹn dữ liệu (xung đột, alias mơ hồ, alias treo).
+function M.validate()
+	return Alias.validate(NS)
+end
+
+function M.getMeta()
+	return M._meta
+end
+
+-- 4. Engine tra cứu tên (API giữ nguyên chữ ký cũ)
 function M.getName(code, targetLang, fallbacks)
 	if not code then return nil end
-	code = string.upper(mw.text.trim(code))
-	
-	-- Phân giải Alpha-3 hoặc Numeric về Alpha-2
-	local alpha2 = reverseData[code] or code
-	
-	local country = baseData[alpha2]
-	if not country then return code end -- Không có trong CSDL
-	
-	-- (Giữ nguyên logic tra cứu tranData phần dưới)
-	-- Chú ý sửa tranData[code] thành tranData[alpha2] trong hàm checkTran
+	local raw = Alias.normalizers.default(tostring(code))
+
+	-- Phân giải Alpha-3 / Numeric / tên / alias về Alpha-2
+	local alpha2 = Alias.resolve(NS, code)
+	local country = alpha2 and baseData[alpha2]
+	if not country then
+		local uupper = (mw and mw.ustring and mw.ustring.upper) or string.upper
+		return uupper(raw) -- Không có trong CSDL
+	end
+
 	local function checkTran(langCode)
-		if tranData[alpha2] and tranData[alpha2][langCode] then
+		if langCode and tranData[alpha2] and tranData[alpha2][langCode] then
 			return tranData[alpha2][langCode]
 		end
 		return nil
@@ -298,7 +487,7 @@ function M.getName(code, targetLang, fallbacks)
 	if result then return result end
 
 	-- B. Nếu không có, quét qua chuỗi Fallback (ví dụ: zh-hant -> zh)
-	if fallbacks and fallbacks[targetLang] then
+	if fallbacks and targetLang and fallbacks[targetLang] then
 		for _, fbLang in ipairs(fallbacks[targetLang]) do
 			if fbLang == "en" then break end -- Tới 'en' thì thoát vòng lặp để xử lý ở bước C
 			result = checkTran(fbLang)
