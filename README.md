@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/Logo of the Internationalization.svg" alt="Logo of the Internationalization (I18n)" width="90%" />
+<img src=".assets/Horizontal Logo of the Internationalization.svg" alt="Logo of the Internationalization (I18n)" width="90%" />
 
 <br />
 <br />
