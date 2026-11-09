@@ -6,8 +6,8 @@
 <br />
 
 ![Static Badge](https://img.shields.io/badge/status-Stable-green)
-![Static Badge](https://img.shields.io/badge/Powered%20by-MediaWiki-orange)
-![Static Badge](https://img.shields.io/badge/Lua-90%25-blue?logo=lua)
+![Static Badge](https://img.shields.io/badge/Powered%20by-MediaWiki-orange?link=https%3A%2F%2Fwww.mediawiki.org%2F)
+![Static Badge](https://img.shields.io/badge/Lua-100%25-blue?logo=lua)
 [![Static Badge](https://img.shields.io/badge/ISO-3166%20%C2%B7%20639%20%C2%B7%2015924%20%26%20Unicode%20Ailas-blue)](#iso--unicode-registries)
 [![Static Badge](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
