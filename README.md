@@ -5,11 +5,12 @@
 <br />
 <br />
 
-[![Release](https://img.shields.io/badge/Release-v1.0.0%20Stable-10B981?style=for-the-badge&logo=semanticrelease&logoColor=white)](#stable-release--compatibility)
-[![Powered by MediaWiki](https://img.shields.io/badge/Powered%20by-MediaWiki-006699?style=for-the-badge&logo=mediawiki&logoColor=white)](https://www.mediawiki.org/wiki/Extension:Scribunto)
-[![Scribunto Lua](https://img.shields.io/badge/Scribunto-Lua%205.1-6366F1?style=for-the-badge&logo=lua&logoColor=white)](https://www.mediawiki.org/wiki/Extension:Scribunto/Lua_reference_manual)
-[![ISO & Unicode](https://img.shields.io/badge/ISO-639%20%C2%B7%203166%20%C2%B7%2015924%20%26%20UCD-0EA5E9?style=for-the-badge)](#iso--unicode-registries)
-[![License: MIT](https://img.shields.io/badge/License-MIT-334155?style=for-the-badge)](LICENSE)
+![Static Badge](https://img.shields.io/badge/status-Stable-green)
+![Static Badge](https://img.shields.io/badge/Powered%20by-MediaWiki-orange)
+![Static Badge](https://img.shields.io/badge/Lua-90%25-blue?logo=lua)
+[![Static Badge](https://img.shields.io/badge/ISO-3166%20%C2%B7%20639%20%C2%B7%2015924%20%26%20Unicode%20Ailas-blue)](#iso--unicode-registries)
+[![Static Badge](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+
 
 <p align="center">
   <strong>A stateless, lightweight internationalization (i18n) framework and DRY ISO / Unicode registry suite for MediaWiki modules.</strong><br />
